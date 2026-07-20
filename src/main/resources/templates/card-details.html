@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head(${card.name})}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div class="detail-grid">
+            <!-- Left Side: Card Image & Actions -->
+            <div>
+                <div class="glass-card" style="padding: 1rem; text-align: center;">
+                    <img th:src="${card.imageUrl}" alt="Card image" style="width: 100%; border-radius: 8px; box-shadow: var(--shadow-premium);">
+                </div>
+                
+                <!-- Quick Collection / Wishlist Actions -->
+                <div class="glass-card" style="margin-top: 1.5rem;">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-heart"></i> Tương tác thẻ</h3>
+                    <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                        <form th:action="@{/collection/wishlist/add}" method="post">
+                            <input type="hidden" name="cardId" th:value="${card.id}">
+                            <button type="submit" class="btn-secondary" style="width: 100%;"><i class="fa-solid fa-star"></i> Thêm vào Wishlist</button>
+                        </form>
+                        
+                        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0.5rem 0;">
+                        
+                        <form th:action="@{/collection/add}" method="post">
+                            <input type="hidden" name="cardId" th:value="${card.id}">
+                            <div class="form-group">
+                                <label class="form-label">Tình trạng</label>
+                                <select name="condition" class="form-control" required>
+                                    <option value="MINT">MINT</option>
+                                    <option value="NEAR_MINT" selected>NEAR MINT</option>
+                                    <option value="LIGHTLY_PLAYED">LIGHTLY PLAYED</option>
+                                    <option value="MODERATELY_PLAYED">MODERATELY PLAYED</option>
+                                    <option value="HEAVILY_PLAYED">HEAVILY PLAYED</option>
+                                    <option value="DAMAGED">DAMAGED</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Số lượng sở hữu</label>
+                                <input type="number" name="quantity" class="form-control" value="1" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Giá lúc mua (VND)</label>
+                                <input type="number" name="purchasePrice" class="form-control" th:value="${marketPrice}" required>
+                            </div>
+                            <button type="submit" class="btn-primary" style="width: 100%;"><i class="fa-solid fa-folder-plus"></i> Thêm vào Bộ Sưu Tập</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Details, Chart, Alerts, Listings -->
+            <div>
+                <div class="glass-card" style="margin-bottom: 2rem;">
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <span class="badge" th:classappend="${card.cardSet.game.code == 'pokemon' ? 'badge-pokemon' : 'badge-yugioh'}" th:text="${card.cardSet.game.name}"></span>
+                        <span class="badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary);" th:text="${card.collectorNumber}"></span>
+                        <span class="badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary);" th:text="${card.language}"></span>
+                    </div>
+                    
+                    <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;" th:text="${card.name}"></h1>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;" th:text="${card.description}"></p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.25rem;">Market Price</div>
+                            <div style="color: var(--accent-green); font-size: 1.4rem; font-weight: 800;" th:text="${#numbers.formatDecimal(marketPrice, 0, 'COMMA', 0, 'POINT')} + 'đ'"></div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.25rem;">Rarity</div>
+                            <div style="color: var(--text-primary); font-size: 1.1rem; font-weight: 700; margin-top: 0.25rem;" th:text="${card.rarity}"></div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); text-align: center;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.25rem;">Set</div>
+                            <div style="color: var(--text-primary); font-size: 1.1rem; font-weight: 700; margin-top: 0.25rem;" th:text="${card.cardSet.name}"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Price Chart Glass Card -->
+                <div class="glass-card" style="margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-chart-line"></i> Biểu đồ biến động giá</h3>
+                    <div style="position: relative; height: 300px; width: 100%;">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Price Alert Glass Card -->
+                <div class="glass-card" style="margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-bell"></i> Thiết lập cảnh báo giá</h3>
+                    <form th:action="@{/alerts/add}" method="post" style="display: flex; gap: 1rem; align-items: flex-end;">
+                        <input type="hidden" name="cardId" th:value="${card.id}">
+                        
+                        <div style="flex: 2;">
+                            <label class="form-label">Ngưỡng giá mong muốn (VND)</label>
+                            <input type="number" name="targetPrice" class="form-control" th:value="${marketPrice * 0.9}" required>
+                        </div>
+                        
+                        <div style="flex: 1;">
+                            <label class="form-label">Tình trạng lọc</label>
+                            <select name="conditionFilter" class="form-control">
+                                <option value="">Tất cả tình trạng</option>
+                                <option value="MINT">MINT</option>
+                                <option value="NEAR_MINT">NEAR MINT</option>
+                                <option value="LIGHTLY_PLAYED">LIGHTLY PLAYED</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="btn-primary" style="padding: 0.75rem 2rem;"><i class="fa-solid fa-bell"></i> Đặt Cảnh Báo</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Listings đang bán -->
+                <div class="glass-card">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-tags"></i> Các tin đăng bán (Active Listings)</h3>
+                    
+                    <div th:if="${listings.isEmpty()}" style="text-align: center; padding: 2rem 0; color: var(--text-secondary);">
+                        Hiện không có người bán nào đăng tin hoạt động cho thẻ này.
+                    </div>
+                    
+                    <table th:if="${!listings.isEmpty()}">
+                        <thead>
+                            <tr>
+                                <th>Người bán</th>
+                                <th>Tình trạng</th>
+                                <th>Số lượng</th>
+                                <th>Đơn giá</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="l : ${listings}">
+                                <td>
+                                    <div style="font-weight: 600;" th:text="${l.seller.displayName}"></div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);" th:text="${l.seller.address}"></div>
+                                </td>
+                                <td>
+                                    <span class="badge" th:classappend="${l.cardCondition.name() == 'MINT' ? 'badge-mint' : (l.cardCondition.name() == 'NEAR_MINT' ? 'badge-nearmint' : 'badge-played')}" th:text="${l.cardCondition}"></span>
+                                </td>
+                                <td th:text="${l.quantity}"></td>
+                                <td style="font-weight: 700; color: var(--accent-green);" th:text="${#numbers.formatDecimal(l.price, 0, 'COMMA', 0, 'POINT')} + 'đ'"></td>
+                                <td>
+                                    <form th:action="@{/cart/add}" method="post" style="display: flex; gap: 0.25rem;">
+                                        <input type="hidden" name="listingId" th:value="${l.id}">
+                                        <input type="number" name="quantity" value="1" min="1" th:max="${l.quantity}" class="form-control" style="width: 60px; padding: 0.25rem 0.5rem; text-align: center;">
+                                        <button type="submit" class="btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;"><i class="fa-solid fa-cart-plus"></i></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        const cardId = /*[[${card.id}]]*/ 0;
+        
+        fetch(`/api/cards/${cardId}/price-history`)
+            .then(res => res.json())
+            .then(data => {
+                const labels = data.map(item => item.date);
+                const prices = data.map(item => item.price);
+                
+                const ctx = document.getElementById('priceChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Giá thị trường (VND)',
+                            data: prices,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#F3F4F6', font: { family: 'Outfit' } }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#9CA3AF' }
+                            },
+                            y: {
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: '#9CA3AF' }
+                            }
+                        }
+                    }
+                });
+            });
+        /*]]>*/
+    </script>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>

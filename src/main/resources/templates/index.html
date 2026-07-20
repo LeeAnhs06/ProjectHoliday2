@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Trang Chủ')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <section class="search-hero">
+            <h1>Tra Cứu Giá Thẻ TCG & Chợ Trung Gian</h1>
+            <p>Hệ thống check giá chính xác từ thị trường Pokemon và Yu-Gi-Oh!</p>
+            
+            <div class="search-box-container">
+                <form th:action="@{/search}" method="get">
+                    <input type="text" name="keyword" class="search-input" placeholder="Tìm tên thẻ, mã số collector, set..." required autocomplete="off">
+                    <button type="submit" class="search-btn"><i class="fa-solid fa-search"></i></button>
+                </form>
+            </div>
+        </section>
+
+        <section style="margin-top: 3rem;">
+            <h2 style="font-size: 2rem; font-weight: 800; text-align: center; margin-bottom: 2rem;">Chọn Game Cần Tra Cứu</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem;">
+                
+                <div class="glass-card" style="text-align: center; border-color: rgba(239, 68, 68, 0.2); background: linear-gradient(180deg, rgba(239, 68, 68, 0.05) 0%, var(--bg-glass) 100%);">
+                    <i class="fa-solid fa-fire" style="font-size: 3rem; color: #EF4444; margin-bottom: 1rem;"></i>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Pokemon TCG</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Check giá thẻ Charizard, Pikachu, Mewtwo và các Set SV/SWSH mới nhất.</p>
+                    <a th:href="@{/search(gameId=1)}" class="btn-primary" style="background: #EF4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);">Tìm Kiếm</a>
+                </div>
+
+                <div class="glass-card" style="text-align: center; border-color: rgba(245, 158, 11, 0.2); background: linear-gradient(180deg, rgba(245, 158, 11, 0.05) 0%, var(--bg-glass) 100%);">
+                    <i class="fa-solid fa-bolt" style="font-size: 3rem; color: #F59E0B; margin-bottom: 1rem;"></i>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Yu-Gi-Oh!</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Tra cứu Blue-Eyes, Dark Magician và các lá bài huyền thoại.</p>
+                    <a th:href="@{/search(gameId=2)}" class="btn-primary" style="background: #F59E0B; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);">Tìm Kiếm</a>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>

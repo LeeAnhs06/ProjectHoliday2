@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Đăng Phiên Đấu Giá Mới')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div style="margin-bottom: 1.5rem;">
+            <a th:href="@{/auctions}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;"><i class="fa-solid fa-arrow-left"></i> Quay lại Sàn đấu giá</a>
+        </div>
+
+        <div th:if="${errorMessage}" class="glass-card" style="border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); color: var(--accent-red); padding: 1rem; margin-bottom: 1.5rem;">
+            <i class="fa-solid fa-exclamation-triangle"></i> <span th:text="${errorMessage}"></span>
+        </div>
+
+        <div class="glass-card" style="max-width: 800px; margin: 0 auto;">
+            <h2 style="font-size: 1.8rem; font-weight: 800; margin-bottom: 1.5rem;"><i class="fa-solid fa-gavel"></i> Đăng Phiên Đấu Giá Thẻ Bài</h2>
+            
+            <form th:action="@{/seller/auctions/new}" method="post">
+                
+                <!-- Source Selection -->
+                <div style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
+                    <label class="form-label" style="font-weight: 700; margin-bottom: 0.5rem;">Nguồn thẻ bài đấu giá</label>
+                    <div style="display: flex; gap: 2rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="source" value="collection" checked onchange="toggleSource(this.value)">
+                            Từ các thẻ đang đăng bán trên chợ của bạn
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="radio" name="source" value="new" onchange="toggleSource(this.value)">
+                            Tự tải lên thẻ bài mới hoàn toàn
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Source 1: From Listings -->
+                <div id="collectionSourceSection" style="margin-bottom: 1.25rem;">
+                    <label class="form-label">Chọn Thẻ Bài Đang Đăng Bán</label>
+                    <select id="collectionItemIdSelect" name="listingId" class="form-control" style="font-size: 1rem; padding: 0.6rem;">
+                        <option value="">-- Chọn thẻ bài đang đăng bán của bạn --</option>
+                        <option th:each="l : ${activeListings}" th:value="${l.id}" th:text="${l.card.name} + ' (' + ${l.card.cardSet.name} + ') - Tình trạng: ' + ${l.cardCondition} + ' (Giá bán: ' + ${#numbers.formatDecimal(l.price, 0, 'COMMA', 0, 'POINT')} + 'đ)'"></option>
+                    </select>
+                    <div th:if="${activeListings.isEmpty()}" style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--accent-orange); font-style: italic;">
+                        Bạn hiện không có tin đăng bán hoạt động nào. Vui lòng chọn tự tải lên thẻ bài mới!
+                    </div>
+                </div>
+
+                <!-- Source 2: Create New Card (Hidden by default) -->
+                <div id="newCardSourceSection" style="display: none; border: 1px dashed rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 8px; margin-bottom: 1.25rem;">
+                    <h4 style="margin-top: 0; margin-bottom: 1rem; color: var(--accent-blue);"><i class="fa-solid fa-square-plus"></i> Thông tin thẻ bài mới</h4>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Tên thẻ bài</label>
+                        <input type="text" id="cardNameInput" name="cardName" class="form-control" placeholder="Ví dụ: Charizard ex Gold Star" style="padding: 0.6rem;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="form-label">Thuộc Bộ bài (Set)</label>
+                            <select id="setIdSelect" name="setId" class="form-control" style="padding: 0.6rem;">
+                                <option value="">-- Chọn bộ sưu tập/Set --</option>
+                                <option th:each="s : ${sets}" th:value="${s.id}" th:text="${s.name} + ' (' + ${s.game.name} + ')'"></option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Độ hiếm (Rarity)</label>
+                            <input type="text" name="rarity" class="form-control" placeholder="Secret Rare / Ultra Rare / ..." value="Common" style="padding: 0.6rem;">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <label class="form-label">Mã thẻ (Collector Number)</label>
+                            <input type="text" name="collectorNumber" class="form-control" placeholder="Ví dụ: 223/197 hoặc LOB-001" style="padding: 0.6rem;">
+                        </div>
+                        <div>
+                            <label class="form-label">Ngôn ngữ</label>
+                            <select name="language" class="form-control" style="padding: 0.6rem;">
+                                <option value="EN">English (EN)</option>
+                                <option value="JP">Japanese (JP)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <label class="form-label">Link hình ảnh thẻ bài (Image URL)</label>
+                        <input type="text" name="imageUrl" class="form-control" placeholder="https://..." style="padding: 0.6rem;">
+                    </div>
+
+                    <div style="margin-bottom: 0;">
+                        <label class="form-label">Mô tả thẻ bài</label>
+                        <textarea name="cardDescription" class="form-control" rows="2" placeholder="Thông số thẻ bài..." style="padding: 0.6rem;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Common Auction Details -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.25rem;">
+                    <div>
+                        <label class="form-label">Giá khởi điểm (đ)</label>
+                        <input type="number" name="startPrice" class="form-control" required min="1000" placeholder="Ví dụ: 50000" style="padding: 0.6rem;">
+                    </div>
+                    <div>
+                        <label class="form-label">Bước giá tối thiểu (đ)</label>
+                        <input type="number" name="minIncrement" class="form-control" required min="1000" value="10000" placeholder="Ví dụ: 10000" style="padding: 0.6rem;">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.25rem;">
+                    <div>
+                        <label class="form-label">Tình trạng thẻ bài thực tế</label>
+                        <select name="condition" class="form-control" required style="padding: 0.6rem;">
+                            <option th:each="cond : ${conditions}" th:value="${cond}" th:text="${cond}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Thời gian kết thúc</label>
+                        <input type="datetime-local" id="endTimeInput" name="endTimeStr" class="form-control" required style="padding: 0.6rem;">
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 1.5rem;">
+                    <label class="form-label">Mô tả chi tiết phiên đấu giá (tùy chọn)</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Mô tả về xuất xứ thẻ của bạn, cách đóng gói gửi đi,..." style="padding: 0.6rem;"></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 1rem;">
+                    <a th:href="@{/auctions}" class="btn-secondary" style="padding: 0.75rem 2rem;">Hủy</a>
+                    <button type="submit" class="btn-primary" style="padding: 0.75rem 2.5rem;"><i class="fa-solid fa-save"></i> Đăng Đấu Giá</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+
+    <script>
+        function toggleSource(val) {
+            const collectionSection = document.getElementById('collectionSourceSection');
+            const newCardSection = document.getElementById('newCardSourceSection');
+            
+            const collectionSelect = document.getElementById('collectionItemIdSelect');
+            const cardNameInput = document.getElementById('cardNameInput');
+            const setIdSelect = document.getElementById('setIdSelect');
+
+            if (val === 'collection') {
+                collectionSection.style.display = 'block';
+                newCardSection.style.display = 'none';
+                
+                collectionSelect.setAttribute('required', 'required');
+                cardNameInput.removeAttribute('required');
+                setIdSelect.removeAttribute('required');
+            } else {
+                collectionSection.style.display = 'none';
+                newCardSection.style.display = 'block';
+                
+                collectionSelect.removeAttribute('required');
+                cardNameInput.setAttribute('required', 'required');
+                setIdSelect.setAttribute('required', 'required');
+            }
+        }
+
+        // Initialize form validation toggling on load
+        window.addEventListener('DOMContentLoaded', () => {
+            toggleSource('collection');
+            
+            // Set default end time to 24 hours from now
+            const now = new Date();
+            now.setHours(now.getHours() + 24);
+            
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            
+            const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            document.getElementById('endTimeInput').value = localDateTime;
+        });
+    </script>
+</body>
+</html>

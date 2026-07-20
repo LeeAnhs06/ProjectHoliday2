@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Admin Dashboard')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <h2 style="font-weight: 800; font-size: 2.2rem; margin-bottom: 2rem;"><i class="fa-solid fa-gauge"></i> Bảng Điều Khiển Admin</h2>
+
+        <!-- Stats row -->
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2.5rem;">
+            <div class="glass-card" style="text-align: center;">
+                <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.25rem;">Thành viên</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: var(--accent-blue);" th:text="${usersCount}"></div>
+            </div>
+            <div class="glass-card" style="text-align: center;">
+                <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.25rem;">Tin Đăng Bán</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: var(--accent-purple);" th:text="${listingsCount}"></div>
+            </div>
+            <div class="glass-card" style="text-align: center;">
+                <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.25rem;">Đơn Hàng</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: var(--accent-green);" th:text="${ordersCount}"></div>
+            </div>
+            <div class="glass-card" style="text-align: center;">
+                <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.25rem;">Thẻ Master</div>
+                <div style="font-size: 1.8rem; font-weight: 800; color: var(--accent-orange);" th:text="${cardsCount}"></div>
+            </div>
+        </div>
+
+        <!-- Background API Synchronization Form -->
+        <div class="glass-card" style="margin-bottom: 2.5rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-cloud-arrow-down"></i> Đồng bộ Thẻ bài tự động từ API Ngoài (Chạy Ngầm)</h3>
+            <div style="display: grid; grid-template-columns: 1.2fr 1.8fr 1fr 1.5fr; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem;">
+                <div>
+                    <label class="form-label">Chọn Trò chơi (Game)</label>
+                    <select id="syncGameCode" class="form-control">
+                        <option value="pokemon">Pokemon TCG</option>
+                        <option value="yugioh">Yu-Gi-Oh!</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Từ khóa tìm kiếm thẻ bài</label>
+                    <input type="text" id="syncKeyword" class="form-control" placeholder="Để trống để lấy thẻ phổ biến...">
+                </div>
+                <div>
+                    <label class="form-label">Số lượng tối đa</label>
+                    <input type="number" id="syncLimit" class="form-control" value="500" min="1" max="1000" style="padding: 0.6rem;">
+                </div>
+                <div>
+                    <button type="button" onclick="startBackgroundSync()" class="btn-primary" style="padding: 0.75rem 1rem; width: 100%;"><i class="fa-solid fa-sync"></i> Bắt đầu đồng bộ</button>
+                </div>
+            </div>
+
+            <!-- Progress Monitor -->
+            <div id="syncMonitor" style="display: none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span id="syncStatusLabel" style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">Trạng thái: Đang kết nối...</span>
+                    <span id="syncProgressPercent" style="font-weight: 700; color: var(--accent-blue);">0%</span>
+                </div>
+                <!-- Progress bar track -->
+                <div style="width: 100%; height: 10px; background-color: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden; margin-bottom: 0.5rem;">
+                    <div id="syncProgressBar" style="width: 0%; height: 100%; background-color: var(--accent-blue); transition: width 0.3s ease;"></div>
+                </div>
+                <div id="syncDetails" style="font-size: 0.85rem; color: var(--text-secondary);">Số lượng thẻ đã lưu: 0/0</div>
+            </div>
+        </div>
+
+        <!-- Add Master Card Form -->
+        <div class="glass-card" style="margin-bottom: 2.5rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-plus"></i> Khởi tạo / Thêm Thẻ Master Mới</h3>
+            <form th:action="@{/admin/cards/new}" method="post" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; align-items: flex-end;">
+                <div>
+                    <label class="form-label">Bộ bài (Set)</label>
+                    <select name="setId" class="form-control" required>
+                        <option th:each="s : ${sets}" th:value="${s.id}" th:text="${s.name} + ' (' + ${s.game.name} + ')'"></option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Tên thẻ bài</label>
+                    <input type="text" name="name" class="form-control" required placeholder="Ví dụ: Mewtwo ex">
+                </div>
+                <div>
+                    <label class="form-label">Rarity</label>
+                    <input type="text" name="rarity" class="form-control" required placeholder="Secret Rare">
+                </div>
+                <div>
+                    <label class="form-label">Collector Number</label>
+                    <input type="text" name="collectorNumber" class="form-control" required placeholder="025/165">
+                </div>
+                <div>
+                    <label class="form-label">Ngôn ngữ</label>
+                    <input type="text" name="language" class="form-control" required value="EN">
+                </div>
+                <div>
+                    <label class="form-label">Image URL</label>
+                    <input type="text" name="imageUrl" class="form-control" required placeholder="https://image-url.com">
+                </div>
+                <div style="grid-column: span 3; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn-primary" style="padding: 0.75rem 2rem;"><i class="fa-solid fa-save"></i> Lưu Thẻ Master</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Listings Moderation -->
+        <div class="glass-card" style="margin-bottom: 2.5rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-shield"></i> Kiểm duyệt Listing</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Người bán</th>
+                        <th>Thẻ bài</th>
+                        <th>Đơn giá</th>
+                        <th>Tình trạng</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="l : ${listings}">
+                        <td th:text="${l.seller.displayName}"></td>
+                        <td th:text="${l.card.name}"></td>
+                        <td style="font-weight: 700; color: var(--accent-green);" th:text="${#numbers.formatDecimal(l.price, 0, 'COMMA', 0, 'POINT')} + 'đ'"></td>
+                        <td th:text="${l.cardCondition}"></td>
+                        <td th:text="${l.status}"></td>
+                        <td>
+                            <form th:action="@{/admin/listings/delete/{id}(id=${l.id})}" method="post" style="display:inline-block;">
+                                <button type="submit" class="btn-secondary" style="padding: 0.25rem 0.5rem; color: var(--accent-red);"><i class="fa-solid fa-trash"></i> Xóa</button>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Users Management -->
+        <div class="glass-card">
+            <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;"><i class="fa-solid fa-users"></i> Quản lý Thành viên</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tên hiển thị</th>
+                        <th>Email</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="u : ${users}">
+                        <td th:text="${u.displayName}"></td>
+                        <td th:text="${u.email}"></td>
+                        <td>
+                            <span class="badge" th:classappend="${u.role.name() == 'ADMIN' ? 'badge-pokemon' : (u.role.name() == 'SELLER' ? 'badge-yugioh' : 'badge-nearmint')}" th:text="${u.role}"></span>
+                        </td>
+                        <td th:text="${u.status}"></td>
+                        <td>
+                            <form th:action="@{/admin/users/status/{id}(id=${u.id})}" method="post" style="display:inline-block;">
+                                <select name="status" class="form-control" style="width: 120px; padding: 0.25rem; font-size: 0.85rem; display: inline-block;" onchange="this.form.submit()">
+                                    <option value="ACTIVE" th:selected="${u.status.name() == 'ACTIVE'}">ACTIVE</option>
+                                    <option value="SUSPENDED" th:selected="${u.status.name() == 'SUSPENDED'}">SUSPENDED</option>
+                                    <option value="BLOCKED" th:selected="${u.status.name() == 'BLOCKED'}">BLOCKED</option>
+                                </select>
+                            </form>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+
+    <script>
+        let pollInterval = null;
+
+        function startBackgroundSync() {
+            const gameCode = document.getElementById('syncGameCode').value;
+            const keyword = document.getElementById('syncKeyword').value.trim();
+            const limit = document.getElementById('syncLimit').value || 500;
+
+            if (!keyword) {
+                if (!confirm('Bạn đang để trống từ khóa. Hệ thống sẽ tự động đồng bộ tối đa ' + limit + ' thẻ bài phổ biến nhất. Bạn có muốn tiếp tục?')) {
+                    return;
+                }
+            }
+
+            const formData = new FormData();
+            formData.append('gameCode', gameCode);
+            formData.append('keyword', keyword);
+            formData.append('limit', limit);
+
+            // Display loading indicator
+            document.getElementById('syncMonitor').style.display = 'block';
+            document.getElementById('syncStatusLabel').innerText = 'Trạng thái: Đang gửi yêu cầu...';
+            document.getElementById('syncProgressBar').style.width = '0%';
+            document.getElementById('syncProgressBar').style.backgroundColor = 'var(--accent-blue)';
+            document.getElementById('syncProgressPercent').innerText = '0%';
+            document.getElementById('syncDetails').innerText = '';
+
+            fetch('/api/admin/sync/start', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    // Start polling
+                    if (pollInterval) clearInterval(pollInterval);
+                    pollInterval = setInterval(() => checkSyncStatus(gameCode), 1000);
+                } else {
+                    alert(data.message || 'Lỗi khi kích hoạt đồng bộ.');
+                    document.getElementById('syncMonitor').style.display = 'none';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Có lỗi xảy ra khi kết nối tới máy chủ.');
+                document.getElementById('syncMonitor').style.display = 'none';
+            });
+        }
+
+        function checkSyncStatus(gameCode) {
+            fetch(`/api/admin/sync/status?gameCode=${gameCode}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data || data.status === 'IDLE') return;
+
+                document.getElementById('syncStatusLabel').innerText = `Trạng thái: ${data.message}`;
+                
+                if (data.totalCount > 0) {
+                    const percent = Math.round((data.processedCount / data.totalCount) * 100);
+                    document.getElementById('syncProgressBar').style.width = `${percent}%`;
+                    document.getElementById('syncProgressPercent').innerText = `${percent}%`;
+                    document.getElementById('syncDetails').innerText = `Đã xử lý: ${data.processedCount}/${data.totalCount} thẻ bài.`;
+                } else {
+                    document.getElementById('syncProgressBar').style.width = '0%';
+                    document.getElementById('syncProgressPercent').innerText = '0%';
+                    document.getElementById('syncDetails').innerText = data.message;
+                }
+
+                if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                    if (data.status === 'COMPLETED') {
+                        document.getElementById('syncProgressBar').style.backgroundColor = 'var(--accent-green)';
+                        setTimeout(() => {
+                            if (confirm('Đồng bộ hoàn tất! Tải lại trang để cập nhật thống kê thẻ bài?')) {
+                                window.location.reload();
+                            }
+                        }, 500);
+                    } else {
+                        document.getElementById('syncProgressBar').style.backgroundColor = 'var(--accent-red)';
+                        alert(`Đồng bộ thất bại: ${data.error || 'Lỗi không xác định'}`);
+                    }
+                }
+            })
+            .catch(err => console.error('Lỗi khi lấy trạng thái đồng bộ:', err));
+        }
+    </script>
+</body>
+</html>

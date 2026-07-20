@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Tạo Tin Đăng Bán')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main style="max-width: 600px;">
+        <div class="glass-card">
+            <h2 style="font-weight: 800; font-size: 1.8rem; margin-bottom: 1.5rem;"><i class="fa-solid fa-tag"></i> Tạo Tin Đăng Bán Thẻ</h2>
+            
+            <form th:action="@{/seller/listings/new}" method="post" enctype="multipart/form-data">
+                <div class="form-group" style="background: rgba(255,255,255,0.02); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                    <label class="form-label"><i class="fa-solid fa-search"></i> Tìm nhanh thẻ từ thư viện (Pokémon / Yugioh)</label>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                        <input type="text" id="apiSearchKeyword" class="form-control" placeholder="Ví dụ: Pikachu, Charizard, Exodia...">
+                        <button type="button" id="apiSearchBtn" class="btn-primary" style="white-space: nowrap;"><i class="fa-solid fa-cloud-download"></i> Tìm & Nạp</button>
+                    </div>
+                    <span id="apiSearchStatus" style="font-size: 0.85rem; color: var(--text-secondary);"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Chọn thẻ bài cần bán</label>
+                    <select name="cardId" class="form-control" required id="cardSelect">
+                        <option value="">-- Chọn thẻ bài master --</option>
+                        <option th:each="c : ${cards}" th:value="${c.id}" th:text="${c.name} + ' (' + ${c.cardSet.name} + ')'" 
+                                th:selected="${c.id.toString() == param.cardId}" th:data-price="${cardService.calculateMarketPrice(c.id)}"></option>
+                    </select>
+                    <div id="marketPriceCompare" style="margin-top: 0.5rem; font-size: 0.95rem; color: var(--text-secondary);"></div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tình trạng thẻ (Condition)</label>
+                    <select name="condition" class="form-control" required>
+                        <option th:each="cond : ${conditions}" th:value="${cond}" th:text="${cond}"
+                                th:selected="${cond.name() == param.condition}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Số lượng đăng bán</label>
+                    <input type="number" name="quantity" class="form-control" min="1" required th:value="${param.quantity != null ? param.quantity : 1}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Đơn giá bán (VND)</label>
+                    <input type="number" name="price" class="form-control" min="1000" step="1000" required th:value="${param.price != null ? param.price : 100000}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tải ảnh thực tế (Cloudinary Uploader) - Khuyên dùng</label>
+                    <input type="file" name="imageFile" class="form-control" accept="image/*" style="padding: 0.4rem;">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Hoặc nhập Link ảnh trực tiếp (Image URL) - Dự phòng</label>
+                    <input type="text" name="imageUrl" class="form-control" placeholder="https://example.com/photo.jpg">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Mô tả tình trạng chi tiết / Ghi chú</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Ví dụ: Pack fresh, no scratches, corner is pristine..."></textarea>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <a th:href="@{/seller/dashboard}" class="btn-secondary" style="flex: 1; text-align: center;">Hủy bỏ</a>
+                    <button type="submit" class="btn-primary" style="flex: 2;">Đăng Tin Bán</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+    <script>
+        // Update price comparison display
+        const selectEl = document.getElementById('cardSelect');
+        const priceDiv = document.getElementById('marketPriceCompare');
+
+        function updatePriceComparison() {
+            const selectedOption = selectEl.options[selectEl.selectedIndex];
+            const price = selectedOption.dataset.price;
+            
+            if (price && parseFloat(price) > 0) {
+                const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+                priceDiv.innerHTML = `<i class="fa-solid fa-scale-balanced"></i> Giá thị trường tham khảo: <strong style="color: var(--accent-green); font-size:1.05rem;">${formattedPrice}</strong>`;
+            } else {
+                priceDiv.innerHTML = '';
+            }
+        }
+
+        selectEl.addEventListener('change', updatePriceComparison);
+
+        document.getElementById('apiSearchBtn').addEventListener('click', function() {
+            const keyword = document.getElementById('apiSearchKeyword').value.trim();
+            const statusSpan = document.getElementById('apiSearchStatus');
+
+            if (!keyword) {
+                statusSpan.textContent = 'Vui lòng nhập từ khóa để tìm.';
+                statusSpan.style.color = 'var(--accent-red)';
+                return;
+            }
+
+            statusSpan.textContent = 'Đang tìm kiếm và nạp từ API quốc tế...';
+            statusSpan.style.color = 'var(--accent-orange)';
+
+            fetch(`/api/cards/search?keyword=${encodeURIComponent(keyword)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.length === 0) {
+                        statusSpan.textContent = 'Không tìm thấy thẻ nào phù hợp trên API.';
+                        statusSpan.style.color = 'var(--accent-red)';
+                        return;
+                    }
+
+                    // Clear and rebuild options
+                    selectEl.innerHTML = '<option value="">-- Chọn thẻ bài master --</option>';
+                    data.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = `${c.name} (${c.setName}) [${c.gameName}]`;
+                        opt.dataset.price = c.marketPrice; // set price in dataset
+                        selectEl.appendChild(opt);
+                    });
+
+                    statusSpan.textContent = `Đã tìm thấy và nạp ${data.length} thẻ vào danh sách bên dưới!`;
+                    statusSpan.style.color = 'var(--accent-green)';
+                    updatePriceComparison(); // reset comparison
+                })
+                .catch(err => {
+                    statusSpan.textContent = 'Lỗi hệ thống khi tìm thẻ.';
+                    statusSpan.style.color = 'var(--accent-red)';
+                    console.error(err);
+                });
+        });
+    </script>
+</body>
+</html>

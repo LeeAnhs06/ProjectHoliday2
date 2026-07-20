@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Đăng Ký')}"></head>
+<body style="display: flex; flex-direction: column; min-height: 100vh;">
+    <header th:replace="~{layout :: header}"></header>
+
+    <main style="display: flex; align-items: center; justify-content: center; flex-grow: 1; margin: 0 auto; width: 100%;">
+        <div class="glass-card" style="width: 100%; max-width: 450px; padding: 2.5rem;">
+            <h2 style="font-weight: 800; font-size: 1.8rem; text-align: center; margin-bottom: 1.5rem;">Tạo Tài Khoản</h2>
+            
+            <div th:if="${error}" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); color: var(--accent-red); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; font-size: 0.9rem;" th:text="${error}"></div>
+
+            <form th:action="@{/register}" method="post">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-control" placeholder="example@tcg.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mật khẩu</label>
+                    <input type="password" name="password" class="form-control" placeholder="Tối thiểu 8 ký tự" minlength="8" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tên hiển thị (Display Name)</label>
+                    <input type="text" name="displayName" class="form-control" placeholder="Dragon Store..." required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Số điện thoại</label>
+                    <input type="text" name="phone" class="form-control" placeholder="09xxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Địa chỉ</label>
+                    <input type="text" name="address" class="form-control" placeholder="Hanoi, Vietnam">
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1rem; padding: 0.75rem;">Đăng Ký</button>
+            </form>
+            
+            <p style="color: var(--text-secondary); text-align: center; font-size: 0.9rem; margin-top: 1.5rem;">
+                Đã có tài khoản? <a th:href="@{/login}" style="color: var(--accent-blue); font-weight: 600;">Đăng nhập</a>
+            </p>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>

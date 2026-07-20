@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Sàn Đấu Giá')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 style="font-weight: 800; font-size: 1.8rem; margin: 0;"><i class="fa-solid fa-gavel"></i> Sàn Đấu Giá Thẻ Bài</h2>
+            <div sec:authorize="hasAnyRole('SELLER', 'ADMIN')">
+                <a th:href="@{/seller/auctions/new}" class="btn-primary" style="padding: 0.6rem 1.5rem;"><i class="fa-solid fa-plus"></i> Đăng Đấu Giá Mới</a>
+            </div>
+        </div>
+
+        <div th:if="${successMessage}" class="glass-card" style="border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); color: var(--accent-green); padding: 1rem; margin-bottom: 1.5rem;">
+            <i class="fa-solid fa-check-circle"></i> <span th:text="${successMessage}"></span>
+        </div>
+
+        <div th:if="${auctions.isEmpty()}" style="text-align: center; padding: 4rem 0;" class="glass-card">
+            <i class="fa-solid fa-gavel" style="font-size: 4rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+            <p style="color: var(--text-secondary); font-size: 1.2rem;">Hiện không có phiên đấu giá nào đang diễn ra.</p>
+            <div sec:authorize="hasAnyRole('SELLER', 'ADMIN')" style="margin-top: 1.5rem;">
+                <a th:href="@{/seller/auctions/new}" class="btn-primary" style="padding: 0.6rem 1.5rem;">Tạo ngay phiên đấu giá đầu tiên</a>
+            </div>
+        </div>
+
+        <div class="card-grid">
+            <div th:each="a : ${auctions}" class="tcg-card">
+                <div class="card-img-wrapper">
+                    <img th:src="${a.card.imageUrl}" alt="Card image">
+                </div>
+                <div class="card-info">
+                    <div>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span th:if="${a.card.cardSet.game.code == 'pokemon'}" class="badge badge-pokemon">Pokemon</span>
+                            <span th:if="${a.card.cardSet.game.code == 'yugioh'}" class="badge badge-yugioh">Yugioh</span>
+                            <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-secondary);" th:text="${a.cardCondition}"></span>
+                        </div>
+                        <a th:href="@{/auctions/{id}(id=${a.id})}" class="card-name" th:text="${a.card.name}"></a>
+                        <div class="card-meta" th:text="'Người bán: ' + ${a.seller.displayName}"></div>
+                    </div>
+                    
+                    <div style="margin: 1rem 0; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span style="font-size: 0.85rem; color: var(--text-secondary);">Giá hiện tại:</span>
+                            <strong style="color: var(--accent-green); font-size: 1.1rem;" th:text="${#numbers.formatDecimal(a.currentPrice, 0, 'COMMA', 0, 'POINT')} + 'đ'"></strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="font-size: 0.85rem; color: var(--text-secondary);">Kết thúc:</span>
+                            <span class="countdown-timer" th:data-endtime="${a.endTime}" style="font-size: 0.85rem; font-weight: 700; color: var(--accent-orange);">Đang tải...</span>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer">
+                        <a th:href="@{/auctions/{id}(id=${a.id})}" class="btn-primary" style="width: 100%; text-align: center; padding: 0.5rem 0;"><i class="fa-solid fa-gavel"></i> Đặt Giá ngay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+
+    <script>
+        function updateTimers() {
+            const timers = document.querySelectorAll('.countdown-timer');
+            timers.forEach(timer => {
+                const endTimeStr = timer.getAttribute('data-endtime');
+                const endTime = new Date(endTimeStr).getTime();
+                const now = new Date().getTime();
+                const diff = endTime - now;
+
+                if (diff <= 0) {
+                    timer.innerText = "Đã kết thúc";
+                    timer.style.color = "var(--text-secondary)";
+                } else {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    let timeString = "";
+                    if (days > 0) timeString += days + "n ";
+                    if (hours > 0 || days > 0) timeString += hours + "h ";
+                    timeString += minutes + "m " + seconds + "s";
+
+                    timer.innerText = timeString;
+                }
+            });
+        }
+
+        setInterval(updateTimers, 1000);
+        updateTimers();
+    </script>
+</body>
+</html>

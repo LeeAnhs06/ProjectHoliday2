@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Chi Tiết Đấu Giá')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div style="margin-bottom: 1.5rem;">
+            <a th:href="@{/auctions}" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem;"><i class="fa-solid fa-arrow-left"></i> Quay lại Sàn đấu giá</a>
+        </div>
+
+        <div th:if="${successMessage}" class="glass-card" style="border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.05); color: var(--accent-green); padding: 1rem; margin-bottom: 1.5rem;">
+            <i class="fa-solid fa-check-circle"></i> <span th:text="${successMessage}"></span>
+        </div>
+        <div th:if="${errorMessage}" class="glass-card" style="border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.05); color: var(--accent-red); padding: 1rem; margin-bottom: 1.5rem;">
+            <i class="fa-solid fa-exclamation-triangle"></i> <span th:text="${errorMessage}"></span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 2.5rem; align-items: start;">
+            <!-- Left: Card Image & Info -->
+            <div class="glass-card" style="text-align: center;">
+                <img th:src="${auction.card.imageUrl}" alt="Card image" style="max-width: 100%; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 8px 25px rgba(0,0,0,0.5);">
+                <div style="display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem;">
+                    <span th:if="${auction.card.cardSet.game.code == 'pokemon'}" class="badge badge-pokemon">Pokemon</span>
+                    <span th:if="${auction.card.cardSet.game.code == 'yugioh'}" class="badge badge-yugioh">Yugioh</span>
+                    <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-secondary);" th:text="${auction.cardCondition}"></span>
+                </div>
+                <h3 style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 0.25rem;" th:text="${auction.card.cardSet.name}"></h3>
+                <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0;" th:text="'Collector No: ' + ${auction.card.collectorNumber}"></h4>
+            </div>
+
+            <!-- Right: Auction Control Console -->
+            <div>
+                <div class="glass-card" style="margin-bottom: 2rem;">
+                    <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 0.5rem;" th:text="${auction.card.name}"></h1>
+                    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;" th:text="${auction.description != null && !auction.description.isEmpty() ? auction.description : 'Không có mô tả chi tiết cho phiên đấu giá này.'}"></p>
+
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); padding: 1.5rem 0;">
+                        <div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Giá khởi điểm:</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);" th:text="${#numbers.formatDecimal(auction.startPrice, 0, 'COMMA', 0, 'POINT')} + 'đ'"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Bước giá tối thiểu:</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary);" th:text="${#numbers.formatDecimal(auction.minIncrement, 0, 'COMMA', 0, 'POINT')} + 'đ'"></div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.25rem;">Người bán:</div>
+                            <div style="font-size: 1.25rem; font-weight: 700; color: var(--accent-blue);" th:text="${auction.seller.displayName}"></div>
+                        </div>
+                    </div>
+
+                    <!-- Live Bidding Area -->
+                    <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div>
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Giá hiện tại:</span>
+                                <div style="font-size: 2.2rem; font-weight: 900; color: var(--accent-green);" th:text="${#numbers.formatDecimal(auction.currentPrice, 0, 'COMMA', 0, 'POINT')} + 'đ'"></div>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Thời gian còn lại:</span>
+                                <div id="liveCountdown" th:data-endtime="${auction.endTime}" style="font-size: 1.5rem; font-weight: 800; color: var(--accent-orange);">Đang tải...</div>
+                            </div>
+                        </div>
+
+                        <!-- 1. Active bidding form -->
+                        <div th:if="${auction.status.name() == 'ACTIVE'}">
+                            <div th:if="${currentUser == null}" style="text-align: center; padding: 0.5rem 0;">
+                                <a th:href="@{/login}" class="btn-primary" style="padding: 0.6rem 2rem;">Đăng nhập để Đặt Giá</a>
+                            </div>
+
+                            <form th:if="${currentUser != null && canBid}" th:action="@{/auctions/{id}/bid(id=${auction.id})}" method="post" style="display: flex; gap: 1rem; align-items: flex-end;">
+                                <div style="flex: 1;">
+                                    <label class="form-label" th:text="'Mức giá đặt (Tối thiểu ' + ${#numbers.formatDecimal(minRequiredBid, 0, 'COMMA', 0, 'POINT')} + 'đ)'"></label>
+                                    <input type="number" name="bidPrice" th:value="${minRequiredBid}" th:min="${minRequiredBid}" step="1000" class="form-control" required style="font-size: 1.1rem; padding: 0.6rem;">
+                                </div>
+                                <button type="submit" class="btn-primary" style="padding: 0.75rem 2rem; font-size: 1.1rem;"><i class="fa-solid fa-gavel"></i> Đặt Giá</button>
+                            </form>
+
+                            <div th:if="${currentUser != null && currentUser.id == auction.seller.id}" style="color: var(--text-secondary); text-align: center; font-style: italic;">
+                                Bạn là người bán của sản phẩm đấu giá này.
+                            </div>
+                        </div>
+
+                        <!-- 2. Completed Auction Controls -->
+                        <div th:if="${auction.status.name() == 'COMPLETED'}" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="color: var(--text-secondary); font-size: 0.95rem;">Người chiến thắng:</span>
+                                    <strong style="font-size: 1.1rem; color: var(--accent-blue);" th:text="${auction.winner.displayName}"></strong>
+                                </div>
+                                
+                                <div>
+                                    <!-- A: Current User is Winner and unpaid -->
+                                    <div th:if="${currentUser != null && currentUser.id == auction.winner.id && !auction.isPaid}">
+                                        <form th:action="@{/auctions/{id}/pay(id=${auction.id})}" method="post">
+                                            <button type="submit" class="btn-primary" style="background: var(--accent-green); box-shadow: 0 4px 15px rgba(16,185,129,0.3); padding: 0.6rem 1.5rem;"><i class="fa-solid fa-credit-card"></i> Xác nhận & Thanh toán</button>
+                                        </form>
+                                    </div>
+                                    <!-- B: Current User is Winner and paid -->
+                                    <div th:if="${currentUser != null && currentUser.id == auction.winner.id && auction.isPaid}" style="color: var(--accent-green); font-weight: 700;">
+                                        <i class="fa-solid fa-circle-check"></i> Đã thanh toán thành công
+                                    </div>
+                                    <!-- C: User is not Winner -->
+                                    <div th:if="${currentUser == null || currentUser.id != auction.winner.id}">
+                                        <span class="badge badge-yugioh" style="padding: 0.5rem 1rem; font-size: 0.9rem;">Phiên đấu giá đã kết thúc</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Cancelled Auction -->
+                        <div th:if="${auction.status.name() == 'CANCELLED'}" style="color: var(--accent-red); font-weight: 700; text-align: center;">
+                            <i class="fa-solid fa-circle-xmark"></i> Phiên đấu giá kết thúc mà không có lượt đặt giá nào.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bids History List -->
+                <div class="glass-card">
+                    <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.25rem;"><i class="fa-solid fa-history"></i> Lịch Sử Trả Giá (<span th:text="${bids.size()}"></span> lượt)</h3>
+                    <div th:if="${bids.isEmpty()}" style="text-align: center; color: var(--text-secondary); padding: 2rem 0; font-style: italic;">
+                        Chưa có người nào đặt giá cho sản phẩm này.
+                    </div>
+                    
+                    <div th:unless="${bids.isEmpty()}" style="max-height: 300px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left;">
+                                    <th style="padding: 0.75rem 0.5rem; color: var(--text-secondary); font-weight: 600;">Thời gian</th>
+                                    <th style="padding: 0.75rem 0.5rem; color: var(--text-secondary); font-weight: 600;">Người đặt</th>
+                                    <th style="padding: 0.75rem 0.5rem; color: var(--text-secondary); font-weight: 600; text-align: right;">Giá đặt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="b, iter : ${bids}" style="border-bottom: 1px solid rgba(255,255,255,0.02);" th:styleappend="${iter.index == 0 ? 'background: rgba(16,185,129,0.05); font-weight: 700;' : ''}">
+                                    <td style="padding: 0.75rem 0.5rem; font-size: 0.9rem;" th:text="${#temporals.format(b.bidTime, 'dd/MM/yyyy HH:mm:ss')}"></td>
+                                    <td style="padding: 0.75rem 0.5rem;" th:text="${b.user.displayName}"></td>
+                                    <td style="padding: 0.75rem 0.5rem; text-align: right; color: var(--accent-green);" th:text="${#numbers.formatDecimal(b.bidPrice, 0, 'COMMA', 0, 'POINT')} + 'đ'"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+
+    <script>
+        function updateCountdown() {
+            const countdownEl = document.getElementById('liveCountdown');
+            if (!countdownEl) return;
+
+            const endTimeStr = countdownEl.getAttribute('data-endtime');
+            const endTime = new Date(endTimeStr).getTime();
+            const now = new Date().getTime();
+            const diff = endTime - now;
+
+            if (diff <= 0) {
+                countdownEl.innerText = "Đã kết thúc";
+                countdownEl.style.color = "var(--text-secondary)";
+            } else {
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                let timeString = "";
+                if (days > 0) timeString += days + "n ";
+                if (hours > 0 || days > 0) timeString += hours + "h ";
+                timeString += minutes + "m " + seconds + "s";
+
+                countdownEl.innerText = timeString;
+            }
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
+    </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Chi Tiết Đơn Hàng')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main style="max-width: 800px;">
+        <div class="glass-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                <div>
+                    <h2 style="font-weight: 800; font-size: 1.6rem;" th:text="'Đơn hàng ' + ${order.orderCode}"></h2>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;" th:text="'Ngày tạo: ' + ${#temporals.format(order.createdAt, 'dd-MM-yyyy HH:mm')}"></p>
+                </div>
+                <span class="badge" th:classappend="${order.status.name() == 'COMPLETED' ? 'badge-mint' : (order.status.name() == 'CANCELLED' ? 'badge-damaged' : 'badge-nearmint')}" th:text="${order.status}"></span>
+            </div>
+
+            <!-- Buyer/Seller & Address info -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div>
+                    <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Thông tin giao dịch</h4>
+                    <p style="font-size:0.95rem; color:var(--text-secondary);">
+                        Người mua: <span style="color:var(--text-primary); font-weight:600;" th:text="${order.buyer.displayName}"></span><br>
+                        Người bán: <span style="color:var(--text-primary); font-weight:600;" th:text="${order.seller.displayName}"></span><br>
+                        Thanh toán: <span style="color:var(--text-primary);" th:text="${order.paymentMethod}"></span>
+                    </p>
+                </div>
+                <div>
+                    <h4 style="font-weight: 700; margin-bottom: 0.5rem;">Địa chỉ nhận hàng</h4>
+                    <p style="font-size:0.95rem; color:var(--text-secondary);" th:text="${order.shippingAddress}"></p>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <h4 style="font-weight: 700; margin-bottom: 0.75rem;">Sản phẩm</h4>
+            <table style="margin-top: 0;">
+                <thead>
+                    <tr>
+                        <th>Thẻ bài</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                        <th>Thành tiền</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${order.items}">
+                        <td>
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <img th:src="${item.listing.imageUrls}" style="width: 35px; border-radius: 4px;">
+                                <div>
+                                    <div style="font-weight: 600;" th:text="${item.listing.card.name}"></div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);" th:text="${item.listing.cardCondition}"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td th:text="${item.quantity}"></td>
+                        <td th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 0, 'POINT')} + 'đ'"></td>
+                        <td style="font-weight:700;" th:text="${#numbers.formatDecimal(item.price * item.quantity, 0, 'COMMA', 0, 'POINT')} + 'đ'"></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Financials summary -->
+            <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-color); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem;">
+                    <span>Phí nền tảng (Platform Fee):</span>
+                    <span th:text="${#numbers.formatDecimal(order.platformFee, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; color: var(--accent-green);">
+                    <span>Tổng cộng:</span>
+                    <span th:text="${#numbers.formatDecimal(order.totalAmount, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+                </div>
+            </div>
+
+            <!-- Action buttons depending on status and role -->
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                <!-- BUYER ACTIONS -->
+                <div th:if="${order.buyer.id == currentUser.id}" style="display: flex; gap: 0.5rem;">
+                    <form th:if="${order.status.name() == 'AWAITING_PAYMENT'}" th:action="@{/orders/{id}/status(id=${order.id})}" method="post">
+                        <input type="hidden" name="status" value="PAID">
+                        <button type="submit" class="btn-primary"><i class="fa-solid fa-credit-card"></i> Thanh Toán Ngay</button>
+                    </form>
+                    
+                    <form th:if="${order.status.name() == 'SHIPPING' || order.status.name() == 'DELIVERED'}" th:action="@{/orders/{id}/status(id=${order.id})}" method="post">
+                        <input type="hidden" name="status" value="COMPLETED">
+                        <button type="submit" class="btn-primary"><i class="fa-solid fa-check"></i> Đã Nhận Được Hàng & Hoàn Tất</button>
+                    </form>
+
+                    <form th:if="${order.status.name() == 'CREATED' || order.status.name() == 'AWAITING_PAYMENT'}" th:action="@{/orders/{id}/status(id=${order.id})}" method="post">
+                        <input type="hidden" name="status" value="CANCELLED">
+                        <button type="submit" class="btn-secondary" style="color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3);"><i class="fa-solid fa-xmark"></i> Hủy Đơn</button>
+                    </form>
+                </div>
+
+                <!-- SELLER ACTIONS -->
+                <div th:if="${order.seller.id == currentUser.id}" style="display: flex; gap: 0.5rem;">
+                    <form th:if="${order.status.name() == 'CREATED' || order.status.name() == 'PAID'}" th:action="@{/orders/{id}/status(id=${order.id})}" method="post">
+                        <input type="hidden" name="status" value="SELLER_CONFIRMED">
+                        <button type="submit" class="btn-primary"><i class="fa-solid fa-check-double"></i> Xác Nhận Đơn Hàng</button>
+                    </form>
+
+                    <form th:if="${order.status.name() == 'SELLER_CONFIRMED'}" th:action="@{/orders/{id}/status(id=${order.id})}" method="post">
+                        <input type="hidden" name="status" value="SHIPPING">
+                        <button type="submit" class="btn-primary"><i class="fa-solid fa-truck"></i> Giao Hàng Cho Vận Chuyển</button>
+                    </form>
+
+                    <form th:if="${order.status.name() == 'CREATED' || order.status.name() == 'AWAITING_PAYMENT'}" th:action="@{/orders/{id}/status(id=${order.id})}" method="post">
+                        <input type="hidden" name="status" value="CANCELLED">
+                        <button type="submit" class="btn-secondary" style="color: var(--accent-red);"><i class="fa-solid fa-xmark"></i> Từ Chối Đơn</button>
+                    </form>
+                </div>
+
+                <a th:href="@{/orders}" class="btn-secondary">Quay lại danh sách</a>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>

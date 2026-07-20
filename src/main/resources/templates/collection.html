@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Bộ Sưu Tập')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div>
+                <h2 style="font-weight: 800; font-size: 2.2rem;"><i class="fa-solid fa-images"></i> Bộ Sưu Tập Cá Nhân</h2>
+                <p style="color: var(--text-secondary);">Theo dõi giá trị tài sản TCG của bạn theo thời gian thực</p>
+            </div>
+            
+            <div class="glass-card" style="padding: 1rem 2rem; border-color: rgba(16, 185, 129, 0.3); background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, var(--bg-glass) 100%);">
+                <span style="font-size: 0.85rem; color: var(--text-secondary); display:block; text-transform:uppercase;">Giá trị ước tính (Portfolio Value)</span>
+                <span style="font-size: 1.8rem; font-weight: 800; color: var(--accent-green);" th:text="${#numbers.formatDecimal(portfolioValue, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+            <a th:href="@{/collection}" class="btn-primary">Bộ Sưu Tập</a>
+            <a th:href="@{/collection/wishlist}" class="btn-secondary">Wishlist của tôi</a>
+        </div>
+
+        <div class="glass-card">
+            <div th:if="${collectionItems.isEmpty()}" style="text-align: center; padding: 3rem 0; color: var(--text-secondary);">
+                Bạn chưa thêm thẻ bài nào vào bộ sưu tập.
+            </div>
+
+            <table th:if="${!collectionItems.isEmpty()}">
+                <thead>
+                    <tr>
+                        <th>Thẻ bài</th>
+                        <th>Tình trạng</th>
+                        <th>Số lượng</th>
+                        <th>Giá mua</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="item : ${collectionItems}">
+                        <td>
+                            <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                <img th:src="${item.card.imageUrl}" style="width: 35px; border-radius: 4px;">
+                                <div>
+                                    <a th:href="@{/cards/{id}(id=${item.card.id})}" style="font-weight: 600;" th:text="${item.card.name}"></a>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);" th:text="${item.card.cardSet.name}"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-nearmint" th:classappend="${item.cardCondition.name() == 'MINT' ? 'badge-mint' : (item.cardCondition.name() == 'NEAR_MINT' ? 'badge-nearmint' : 'badge-played')}" th:text="${item.cardCondition}"></span>
+                        </td>
+                        <td th:text="${item.quantity}"></td>
+                        <td th:text="${#numbers.formatDecimal(item.purchasePrice, 0, 'COMMA', 0, 'POINT')} + 'đ'"></td>
+                        <td>
+                            <form th:action="@{/collection/remove/{id}(id=${item.id})}" method="post" style="display: inline-block;">
+                                <button type="submit" class="btn-secondary" style="padding: 0.25rem 0.5rem; color: var(--accent-red); border-color: rgba(239, 68, 68, 0.2);"><i class="fa-solid fa-trash"></i></button>
+                            </form>
+                            
+                            <!-- Convert to Listing for Sale -->
+                            <a th:href="@{/seller/listings/new(cardId=${item.card.id},condition=${item.cardCondition},quantity=${item.quantity},price=${item.purchasePrice})}" sec:authorize="hasRole('SELLER')" class="btn-primary" style="padding: 0.25rem 0.75rem; font-size: 0.85rem; margin-left:0.5rem;"><i class="fa-solid fa-tag"></i> Bán</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>

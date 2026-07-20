@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Tra Cứu Thẻ')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main>
+        <div class="glass-card" style="margin-bottom: 2rem;">
+            <form th:action="@{/search}" method="get" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+                
+                <div style="flex: 2; min-width: 200px;">
+                    <label class="form-label">Từ khóa</label>
+                    <input type="text" name="keyword" th:value="${keyword}" class="form-control" placeholder="Tên thẻ, collector number...">
+                </div>
+
+                <div style="flex: 1; min-width: 150px;">
+                    <label class="form-label">Game</label>
+                    <select name="gameId" class="form-control">
+                        <option value="">Tất cả Game</option>
+                        <option th:each="g : ${games}" th:value="${g.id}" th:text="${g.name}" th:selected="${g.id == selectedGameId}"></option>
+                    </select>
+                </div>
+
+                <div style="flex: 1; min-width: 150px;">
+                    <label class="form-label">Set / Bộ bài</label>
+                    <select name="setId" class="form-control">
+                        <option value="">Tất cả Set</option>
+                        <option th:each="s : ${sets}" th:value="${s.id}" th:text="${s.name}" th:selected="${s.id == selectedSetId}"></option>
+                    </select>
+                </div>
+
+                <div style="flex: 1; min-width: 120px;">
+                    <label class="form-label">Rarity</label>
+                    <select name="rarity" class="form-control">
+                        <option value="">Tất cả</option>
+                        <option value="Secret Rare" th:selected="${selectedRarity == 'Secret Rare'}">Secret Rare</option>
+                        <option value="Ultra Rare" th:selected="${selectedRarity == 'Ultra Rare'}">Ultra Rare</option>
+                        <option value="Mythic Rare" th:selected="${selectedRarity == 'Mythic Rare'}">Mythic Rare</option>
+                        <option value="Common" th:selected="${selectedRarity == 'Common'}">Common</option>
+                    </select>
+                </div>
+
+                <div style="flex: 1; min-width: 100px;">
+                    <label class="form-label">Ngôn ngữ</label>
+                    <select name="language" class="form-control">
+                        <option value="">Tất cả</option>
+                        <option value="EN" th:selected="${selectedLanguage == 'EN'}">English (EN)</option>
+                        <option value="JP" th:selected="${selectedLanguage == 'JP'}">Japanese (JP)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn-primary" style="padding: 0.75rem 2rem;"><i class="fa-solid fa-filter"></i> Lọc</button>
+                </div>
+            </form>
+        </div>
+
+        <h2 style="font-weight: 800; font-size: 1.8rem; margin-bottom: 1.5rem;">Kết Quả Tra Cứu</h2>
+        
+        <div th:if="${cards.isEmpty()}" style="text-align: center; padding: 4rem 0;">
+            <i class="fa-solid fa-circle-question" style="font-size: 4rem; color: var(--text-secondary); margin-bottom: 1rem;"></i>
+            <p style="color: var(--text-secondary); font-size: 1.2rem;">Không tìm thấy thẻ bài nào phù hợp.</p>
+        </div>
+
+        <div class="card-grid">
+            <div th:each="c : ${cards}" class="tcg-card">
+                <div class="card-img-wrapper">
+                    <img th:src="${c.imageUrl}" alt="Card image">
+                </div>
+                <div class="card-info">
+                    <div>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span th:if="${c.cardSet.game.code == 'pokemon'}" class="badge badge-pokemon">Pokemon</span>
+                            <span th:if="${c.cardSet.game.code == 'yugioh'}" class="badge badge-yugioh">Yugioh</span>
+                            <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-secondary);" th:text="${c.collectorNumber}"></span>
+                        </div>
+                        <a th:href="@{/cards/{id}(id=${c.id})}" class="card-name" th:text="${c.name}"></a>
+                        <div class="card-meta" th:text="${c.cardSet.name}"></div>
+                    </div>
+                    <div class="card-footer" style="margin-top: 1rem;">
+                        <span class="card-price" th:text="${c.rarity}"></span>
+                        <a th:href="@{/cards/{id}(id=${c.id})}" class="btn-primary" style="padding: 0.4rem 1rem; font-size: 0.85rem;">Check Giá</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div th:if="${totalPages > 1}" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 3rem;">
+            <!-- Previous Button -->
+            <a th:if="${currentPage > 0}" 
+               th:href="@{/search(keyword=${keyword}, gameId=${selectedGameId}, setId=${selectedSetId}, rarity=${selectedRarity}, language=${selectedLanguage}, page=${currentPage - 1})}" 
+               class="btn-secondary" style="padding: 0.5rem 1.25rem;"><i class="fa-solid fa-angle-left"></i> Trước</a>
+            <span th:unless="${currentPage > 0}" class="btn-secondary" style="opacity: 0.5; cursor: not-allowed; padding: 0.5rem 1.25rem;"><i class="fa-solid fa-angle-left"></i> Trước</span>
+
+            <!-- Current / Total info -->
+            <span style="color: var(--text-secondary); font-size: 0.95rem;">
+                Trang <strong style="color: var(--text-primary);" th:text="${currentPage + 1}"></strong> / <span th:text="${totalPages}"></span>
+                (Tổng <span th:text="${totalItems}"></span> thẻ)
+            </span>
+
+            <!-- Next Button -->
+            <a th:if="${currentPage < totalPages - 1}" 
+               th:href="@{/search(keyword=${keyword}, gameId=${selectedGameId}, setId=${selectedSetId}, rarity=${selectedRarity}, language=${selectedLanguage}, page=${currentPage + 1})}" 
+               class="btn-primary" style="padding: 0.5rem 1.25rem;">Sau <i class="fa-solid fa-angle-right"></i></a>
+            <span th:unless="${currentPage < totalPages - 1}" class="btn-primary" style="opacity: 0.5; cursor: not-allowed; padding: 0.5rem 1.25rem;">Sau <i class="fa-solid fa-angle-right"></i></span>
+
+            <!-- Jump to Page Controls -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1.5rem;">
+                <span style="color: var(--text-secondary); font-size: 0.95rem;">Đi đến:</span>
+                <input type="number" id="jumpPageInput" th:value="${currentPage + 1}" 
+                       th:min="1" th:max="${totalPages}" 
+                       class="form-control" 
+                       style="width: 70px; padding: 0.45rem; text-align: center; font-size: 0.9rem;"
+                       onkeydown="if(event.key === 'Enter') jumpToPage()">
+                <button type="button" onclick="jumpToPage()" class="btn-secondary" style="padding: 0.45rem 1rem; font-size: 0.9rem; border-color: rgba(255,255,255,0.15);">Đi</button>
+            </div>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+
+    <script th:inline="javascript">
+        function jumpToPage() {
+            const pageVal = parseInt(document.getElementById('jumpPageInput').value);
+            const maxPage = /*[[${totalPages}]]*/ 1;
+            if (isNaN(pageVal) || pageVal < 1 || pageVal > maxPage) {
+                alert('Vui lòng nhập trang hợp lệ từ 1 đến ' + maxPage);
+                return;
+            }
+            
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('page', pageVal - 1); // 0-indexed page in spring
+            window.location.search = urlParams.toString();
+        }
+    </script>
+</body>
+</html>

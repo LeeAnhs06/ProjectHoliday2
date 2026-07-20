@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head('Checkout')}"></head>
+<body>
+    <header th:replace="~{layout :: header}"></header>
+
+    <main style="max-width: 800px;">
+        <div class="glass-card">
+            <h2 style="font-weight: 800; font-size: 1.8rem; margin-bottom: 1.5rem;"><i class="fa-solid fa-credit-card"></i> Xác Nhận Thanh Toán</h2>
+            
+            <div th:if="${error}" style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--accent-red); color: var(--accent-red); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;" th:text="${error}"></div>
+            
+            <form th:action="@{/cart/checkout}" method="post">
+                <div class="form-group">
+                    <label class="form-label">Địa chỉ nhận hàng</label>
+                    <textarea name="shippingAddress" class="form-control" rows="3" required th:text="${currentUser.address}"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Phương thức thanh toán</label>
+                    <select name="paymentMethod" class="form-control" required>
+                        <option value="COD">Thanh toán khi nhận hàng (COD)</option>
+                        <option value="BANK_TRANSFER">Chuyển khoản Ngân hàng (Ví Số dư)</option>
+                    </select>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Tiền hàng:</span>
+                        <span th:text="${#numbers.formatDecimal(cartTotal, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Phí sàn trung gian (5%):</span>
+                        <span th:text="${#numbers.formatDecimal(platformFee, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 0.75rem 0;">
+                    <div style="display: flex; justify-content: space-between; font-weight: 700;">
+                        <span>Tổng thanh toán:</span>
+                        <span style="color: var(--accent-green);" th:text="${#numbers.formatDecimal(finalTotal, 0, 'COMMA', 0, 'POINT')} + 'đ'"></span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem;">
+                    <a th:href="@{/cart}" class="btn-secondary" style="flex: 1; text-align: center;">Quay lại</a>
+                    <button type="submit" class="btn-primary" style="flex: 2;">Xác nhận đặt mua</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer th:replace="~{layout :: footer}"></footer>
+</body>
+</html>
