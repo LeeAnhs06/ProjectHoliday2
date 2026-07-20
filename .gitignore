@@ -1,3 +1,10 @@
+### Secrets - NEVER commit real credentials ###
+src/main/resources/application.properties
+tcgdb.mv.db
+tcgdb.trace.db
+*.docx
+*.xlsx
+
 HELP.md
 .gradle
 build/
